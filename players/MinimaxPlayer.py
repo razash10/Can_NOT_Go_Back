@@ -5,6 +5,7 @@ from players.AbstractPlayer import AbstractPlayer
 # TODO: you can import more modules, if needed
 from SearchAlgos import MiniMax
 import numpy as np
+import time
 
 
 class Player(AbstractPlayer):
@@ -12,10 +13,13 @@ class Player(AbstractPlayer):
         AbstractPlayer.__init__(self, game_time,
                                 penalty_score)  # keep the inheritance of the parent's (AbstractPlayer) __init__()
         # TODO: initialize more fields, if needed, and the Minimax algorithm from SearchAlgos.py
-        minimax_algo = MiniMax(self.utility, self.succ, self.perform_move, None)  # FIXME: Replace Nones with working functions
+        minimax_algo = MiniMax(self.utility, self.succ, self.perform_move, None)
         self.board = None
         self.pos = None
         self.fruits_states = {}
+        self.time = 0
+        self.start = 0
+        self.buffer = 50
 
     def set_game_params(self, board):
         """Set the game parameters needed for this player.
@@ -35,7 +39,7 @@ class Player(AbstractPlayer):
         for i in range(len(board)):
             for j in range(len(board[i])):
                 if board[i][j] > 2:
-                    self.fruits_states['(i,j)'] = board[i][j]
+                    self.fruits_states[(i, j)] = board[i][j]
 
     def make_move(self, time_limit, players_score):
         """Make move with this Player.
@@ -45,7 +49,26 @@ class Player(AbstractPlayer):
             - direction: tuple, specifing the Player's movement, chosen from self.directions
         """
         # TODO: erase the following line and implement this function.
-        raise NotImplementedError
+        self.time = time_limit
+        self.start = time.time()
+        depth = 1
+        best_direction = None
+        best_score = float('-inf')
+        limit = self.board.size
+
+        # At least "buffer" in ms left to run
+        while self.time_left() > self.buffer and depth <= limit:
+            minimax_algo = MiniMax(self.utility, self.succ, self.perform_move, None)
+            player_pos = self.get_player_position(1)
+            ai_pos = self.get_player_position(2)
+            players_positions = [ai_pos, player_pos]
+            score, direction = minimax_algo.search(players_positions, depth, True)
+            depth += 1
+            if score > best_score:
+                best_score = score
+                best_direction = direction
+
+        return best_direction
 
     def set_rival_move(self, pos):
         """Update your info, given the new position of the rival.
@@ -68,10 +91,16 @@ class Player(AbstractPlayer):
 
     ########## helper functions in class ##########
     # TODO: add here helper functions in class, if needed
-    @staticmethod
-    def count_ones(board):
-        counter = len(np.where(board == 1)[0])
-        return counter
+    def time_left(self):
+        #   Compute time left for the run in ms
+        return (self.time - (time.time() - self.start)) * 1000
+
+    def get_player_position(self, player_index):
+        for i in range(len(self.board)):
+            for j in range(len(self.board[i])):
+                if self.board[i][j] == player_index:
+                    player_pos = (i, j)
+                    return player_pos
 
     ########## helper functions for MiniMax algorithm ##########
     # TODO: add here the utility, succ, and perform_move functions used in MiniMax algorithm
