@@ -1,11 +1,13 @@
 """Search Algos: MiniMax, AlphaBeta
 """
 from utils import ALPHA_VALUE_INIT, BETA_VALUE_INIT
-#TODO: you can import more modules, if needed
+# TODO: you can import more modules, if needed
+from utils import get_directions
+import operator
 
 
 class SearchAlgos:
-    def __init__(self, utility, succ, perform_move, goal):
+    def __init__(self, utility, succ, perform_move, goal=None):
         """The constructor for all the search algos.
         You can code these functions as you like to, 
         and use them in MiniMax and AlphaBeta algos as learned in class
@@ -31,28 +33,33 @@ class MiniMax(SearchAlgos):
         :param maximizing_player: Whether this is a max node (True) or a min node (False).
         :return: A tuple: (The min max algorithm value, The direction in case of max node or None in min mode)
         """
-        #TODO: erase the following line and implement this function.
+        # TODO: erase the following line and implement this function.
+        pos = None
+        if maximizing_player:
+            pos = state[0]
+        else:
+            pos = state[1]
 
-        if depth <= 0:
-            if maximizing_player is True:
-                res = (self.utility(state), None) #FIXME: Shouldn't be None. (What direction?)
-            else:
-                res = (self.utility(state), None)
+        if (depth <= 0) or (len(self.succ(pos)) == 0):
+            res = (0, None)
             return res
 
-        if maximizing_player is True: # This is a max node
-            max_node = None
-            for node in self.succ(state): # Find the max node in succ
-                if (max_node is None) or (self.utility(node) > self.utility(max_node)):
-                    max_node = node
-            return self.search(max_node, depth - 1, False)
+        scores = []
+        for next_pos in self.succ(pos):
+            score = self.utility(next_pos)
+            self.perform_move(pos, next_pos)
+            direction = None
+            if maximizing_player:
+                state[0] = next_pos
+                direction = tuple(map(operator.sub, next_pos, pos))
+                assert (direction in get_directions())
+            else:
+                state[1] = next_pos
+            scores.append((score + self.search(state, depth - 1, not maximizing_player)[0], direction))
+            self.perform_move(next_pos, pos)
 
-        else: # This is a min node
-            min_node = None
-            for node in self.succ(state):  # Find the min node in succ
-                if (min_node is None) or (self.utility(node) > self.utility(min_node)):
-                    min_node = node
-            return self.search(min_node, depth - 1, True)
+        return max(scores) if maximizing_player else min(scores)
+
 
 class AlphaBeta(SearchAlgos):
 
@@ -65,5 +72,5 @@ class AlphaBeta(SearchAlgos):
         :param: beta: beta value
         :return: A tuple: (The min max algorithm value, The direction in case of max node or None in min mode)
         """
-        #TODO: erase the following line and implement this function.
+        # TODO: erase the following line and implement this function.
         raise NotImplementedError
