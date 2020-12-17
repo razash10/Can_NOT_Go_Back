@@ -79,7 +79,6 @@ class Player(AbstractPlayer):
 
         self.pos = (i, j)
 
-        print('best direction: '+str(best_direction))
         return best_direction
 
     def set_rival_move(self, pos):
