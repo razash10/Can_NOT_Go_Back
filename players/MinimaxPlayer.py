@@ -20,6 +20,7 @@ class Player(AbstractPlayer):
         self.time = 0
         self.start = 0
         self.buffer = 50
+        self.rival = None
 
     def set_game_params(self, board):
         """Set the game parameters needed for this player.
@@ -30,7 +31,6 @@ class Player(AbstractPlayer):
         No output is expected.
         """
         # TODO: erase the following line and implement this function.
-        # TODO: erase the following line and implement this function.
         self.board = board
         pos = np.where(board == 1)
         # convert pos to tuple of ints
@@ -40,6 +40,8 @@ class Player(AbstractPlayer):
             for j in range(len(board[i])):
                 if board[i][j] > 2:
                     self.fruits_states[(i, j)] = board[i][j]
+                if board[i][j] == 2:
+                    self.rival = (i, j)
 
     def make_move(self, time_limit, players_score):
         """Make move with this Player.
@@ -59,8 +61,8 @@ class Player(AbstractPlayer):
         # At least "buffer" in ms left to run
         while self.time_left() > self.buffer and depth <= limit:
             minimax_algo = MiniMax(self.utility, self.succ, self.perform_move, None)
-            player_pos = self.get_player_position(1)
-            ai_pos = self.get_player_position(2)
+            ai_pos = self.get_player_position(1)
+            player_pos = self.get_player_position(2)
             players_positions = [ai_pos, player_pos]
             score, direction = minimax_algo.search(players_positions, depth, True)
             depth += 1
@@ -68,6 +70,16 @@ class Player(AbstractPlayer):
                 best_score = score
                 best_direction = direction
 
+        assert(best_direction is not None)
+
+        i = self.pos[0] + best_direction[0]
+        j = self.pos[1] + best_direction[1]
+
+        self.perform_move(self.pos, (i, j))
+
+        self.pos = (i, j)
+
+        print('best direction: '+str(best_direction))
         return best_direction
 
     def set_rival_move(self, pos):
@@ -77,7 +89,9 @@ class Player(AbstractPlayer):
         No output is expected
         """
         # TODO: erase the following line and implement this function.
-        self.board[pos] = -1
+        self.board[pos] = 2
+        self.board[self.rival] = -1
+        self.rival = pos
 
     def update_fruits(self, fruits_on_board_dict):
         """Update your info on the current fruits on board (if needed).
