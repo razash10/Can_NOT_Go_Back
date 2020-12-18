@@ -7,13 +7,11 @@ from SearchAlgos import MiniMax
 import numpy as np
 import time
 
-
 class Player(AbstractPlayer):
     def __init__(self, game_time, penalty_score):
         AbstractPlayer.__init__(self, game_time,
                                 penalty_score)  # keep the inheritance of the parent's (AbstractPlayer) __init__()
         # TODO: initialize more fields, if needed, and the Minimax algorithm from SearchAlgos.py
-        minimax_algo = MiniMax(self.utility, self.succ, self.perform_move, None)
         self.board = None
         self.pos = None
         self.fruits_states = {}
@@ -51,6 +49,7 @@ class Player(AbstractPlayer):
             - direction: tuple, specifing the Player's movement, chosen from self.directions
         """
         # TODO: erase the following line and implement this function.
+
         self.time = time_limit
         self.start = time.time()
         depth = 1
@@ -104,6 +103,14 @@ class Player(AbstractPlayer):
 
     ########## helper functions in class ##########
     # TODO: add here helper functions in class, if needed
+    def is_legal_move(self, next_pos):
+        i = next_pos[0]
+        j = next_pos[1]
+        if 0 <= i < len(self.board) and 0 <= j < len(self.board[0]) and (self.board[i][j] not in [-1, 1, 2]):
+            return True
+        else:
+            return False
+
     def time_left(self):
         #   Compute time left for the run in ms
         return (self.time - (time.time() - self.start)) * 1000
@@ -114,6 +121,33 @@ class Player(AbstractPlayer):
                 if self.board[i][j] == player_index:
                     player_pos = (i, j)
                     return player_pos
+
+    def h_successors_by_depth(self, pos, depth):
+        successors = set(self.succ(pos))
+
+        if depth <= 0 or len(successors) == 0:
+            return set(pos)
+
+        for next_pos in successors:
+            self.perform_move(pos, next_pos)
+            next_successors = self.h_successors_by_depth(next_pos, depth-1)
+            successors.union(next_successors)
+            self.perform_move(next_pos, pos)
+
+        return successors
+
+    def h_manhattan_distance(self):
+        pos1 = self.pos
+        pos2 = self.rival
+        return np.abs(pos1[0] - pos2[0]) + np.abs(pos1[1] - pos2[1])
+
+    def h_directions_diff(self):
+        return len(self.succ(self.pos)) - len(self.succ(self.rival))
+
+    def h_minimax(self):
+        v1 = len(self.h_successors_by_depth(self.pos, 3))
+        v2 = self.h_manhattan_distance() / self.board.size
+        v3 = self.h_directions_diff() / 3
 
     ########## helper functions for MiniMax algorithm ##########
     # TODO: add here the utility, succ, and perform_move functions used in MiniMax algorithm
