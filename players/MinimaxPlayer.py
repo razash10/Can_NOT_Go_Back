@@ -169,9 +169,9 @@ class Player(AbstractPlayer):
 
         win, lose = float('inf'), float('-inf')
 
-        if len(rival_moves) == 0:
+        if len(rival_moves) == 0 and len(my_moves) > 0:
             return win
-        elif len(my_moves) == 0:
+        elif len(my_moves) == 0 and len(rival_moves) > 0:
             return lose
 
         return self.h_minimax(pos)
