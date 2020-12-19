@@ -7,6 +7,7 @@ from SearchAlgos import MiniMax
 import numpy as np
 import time
 
+
 class Player(AbstractPlayer):
     def __init__(self, game_time, penalty_score):
         AbstractPlayer.__init__(self, game_time,
@@ -19,6 +20,8 @@ class Player(AbstractPlayer):
         self.start = 0
         self.buffer = 50
         self.rival = None
+        self.init_pos = None
+        self.fruits_ate = 0
 
     def set_game_params(self, board):
         """Set the game parameters needed for this player.
@@ -33,7 +36,7 @@ class Player(AbstractPlayer):
         pos = np.where(board == 1)
         # convert pos to tuple of ints
         self.pos = tuple(ax[0] for ax in pos)
-
+        self.init_pos = self.pos
         for i in range(len(board)):
             for j in range(len(board[i])):
                 if board[i][j] > 2:
@@ -55,7 +58,7 @@ class Player(AbstractPlayer):
         depth = 1
         best_direction = None
         best_score = float('-inf')
-        limit = self.board.size
+        limit = min(self.board.shape) * 2
 
         # At least "buffer" in ms left to run
         while self.time_left() > self.buffer and depth <= limit:
@@ -64,12 +67,14 @@ class Player(AbstractPlayer):
             player_pos = self.get_player_position(2)
             players_positions = [ai_pos, player_pos]
             score, direction = minimax_algo.search(players_positions, depth, True)
+            print('score=' + str(score) + ' direction=' + str(direction) +
+                  ' depth=' + str(depth) + ' fruits_ate=' + str(self.fruits_ate))
             depth += 1
             if score > best_score:
                 best_score = score
                 best_direction = direction
 
-        assert(best_direction is not None)
+        assert (best_direction is not None)
 
         i = self.pos[0] + best_direction[0]
         j = self.pos[1] + best_direction[1]
@@ -130,13 +135,13 @@ class Player(AbstractPlayer):
 
         for next_pos in successors:
             self.perform_move(pos, next_pos)
-            next_successors = self.h_successors_by_depth(next_pos, depth-1)
+            next_successors = self.h_successors_by_depth(next_pos, depth - 1)
             successors.union(next_successors)
             self.perform_move(next_pos, pos)
 
         return successors
 
-    def h_manhattan_distance(self):
+    def h_dist_from_rival(self):
         pos1 = self.pos
         pos2 = self.rival
         return np.abs(pos1[0] - pos2[0]) + np.abs(pos1[1] - pos2[1])
@@ -144,24 +149,20 @@ class Player(AbstractPlayer):
     def h_directions_diff(self):
         return len(self.succ(self.pos)) - len(self.succ(self.rival))
 
-    def h_minimax(self):
-        v1 = len(self.h_successors_by_depth(self.pos, 3))
-        v2 = self.h_manhattan_distance() / self.board.size
+    def manhattan_distance(self, pos):
+        return np.abs(self.pos[0] - pos[0]) + np.abs(self.pos[1] - pos[1])
+
+    def h_minimax(self, pos):
+        v1 = len(self.h_successors_by_depth(pos, min(self.board.shape)))
+        v2 = self.h_dist_from_rival() / self.board.size
         v3 = self.h_directions_diff() / 3
+        v4 = self.fruits_ate
+        return pow((v1 - v2 + v3), (v4 + 1))
 
     ########## helper functions for MiniMax algorithm ##########
     # TODO: add here the utility, succ, and perform_move functions used in MiniMax algorithm
     def utility(self, pos):
-        assert (pos is not None)
-        i = pos[0]
-        j = pos[1]
-
-        if self.board[i][j] == 0:
-            return 1
-        elif self.board[i][j] > 2:
-            return self.board[i][j]
-
-        return 0
+        return self.h_minimax(pos)
 
     def succ(self, pos):
         next_poses = []
@@ -184,10 +185,15 @@ class Player(AbstractPlayer):
         player_index = self.board[pos]
 
         if self.board[next_pos] != -1:  # moving forward
+            if next_pos in self.fruits_states and player_index == 1:
+                self.fruits_ate += 1
             self.board[pos] = -1
+
         else:  # returning backward
             if pos in self.fruits_states:
                 self.board[pos] = self.fruits_states[pos]
+                if player_index == 1:
+                    self.fruits_ate -= 1
             else:
                 self.board[pos] = 0
 
