@@ -47,7 +47,7 @@ class MiniMax(SearchAlgos):
         scores = []
         for next_pos in self.succ(pos):
             self.perform_move(pos, next_pos)
-            score = self.utility(next_pos)
+            score = self.utility(next_pos, maximizing_player)
             direction = None
             if maximizing_player:
                 state[0] = next_pos

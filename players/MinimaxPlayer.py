@@ -7,7 +7,6 @@ from SearchAlgos import MiniMax
 import numpy as np
 import time
 
-
 class Player(AbstractPlayer):
     def __init__(self, game_time, penalty_score):
         AbstractPlayer.__init__(self, game_time,
@@ -20,7 +19,6 @@ class Player(AbstractPlayer):
         self.start = 0
         self.buffer = 50
         self.rival = None
-        self.init_pos = None
         self.fruits_ate = 0
 
     def set_game_params(self, board):
@@ -36,7 +34,6 @@ class Player(AbstractPlayer):
         pos = np.where(board == 1)
         # convert pos to tuple of ints
         self.pos = tuple(ax[0] for ax in pos)
-        self.init_pos = self.pos
         for i in range(len(board)):
             for j in range(len(board[i])):
                 if board[i][j] > 2:
@@ -58,19 +55,16 @@ class Player(AbstractPlayer):
         depth = 1
         best_direction = None
         best_score = float('-inf')
-        limit = min(self.board.shape) * 2
+        limit = min(self.board.shape) * 3
 
         # At least "buffer" in ms left to run
         while self.time_left() > self.buffer and depth <= limit:
             minimax_algo = MiniMax(self.utility, self.succ, self.perform_move, None)
-            ai_pos = self.get_player_position(1)
-            player_pos = self.get_player_position(2)
-            players_positions = [ai_pos, player_pos]
+            players_positions = [self.pos, self.rival]
             score, direction = minimax_algo.search(players_positions, depth, True)
-            print('score=' + str(score) + ' direction=' + str(direction) +
-                  ' depth=' + str(depth) + ' fruits_ate=' + str(self.fruits_ate))
+            print('score=' + str(score) + ' direction=' + str(direction) + ' depth=' + str(depth))
             depth += 1
-            if score > best_score:
+            if best_direction is None or score > best_score:
                 best_score = score
                 best_direction = direction
 
@@ -120,26 +114,24 @@ class Player(AbstractPlayer):
         #   Compute time left for the run in ms
         return (self.time - (time.time() - self.start)) * 1000
 
-    def get_player_position(self, player_index):
-        for i in range(len(self.board)):
-            for j in range(len(self.board[i])):
-                if self.board[i][j] == player_index:
-                    player_pos = (i, j)
-                    return player_pos
-
     def h_successors_by_depth(self, pos, depth):
-        successors = set(self.succ(pos))
+        temp_board = self.board
+        queue = [pos]
+        count_successors = 0
 
-        if depth <= 0 or len(successors) == 0:
-            return set(pos)
+        while queue:
+            s = queue.pop(0)
+            count_successors += 1
+            for i in self.succ(s):
+                if self.board[i] != -2:
+                    queue.append(i)
+                    self.board[i] = -2
+            depth -= 1
+            if depth <= 0:
+                break
 
-        for next_pos in successors:
-            self.perform_move(pos, next_pos)
-            next_successors = self.h_successors_by_depth(next_pos, depth - 1)
-            successors.union(next_successors)
-            self.perform_move(next_pos, pos)
-
-        return successors
+        self.board = temp_board
+        return count_successors
 
     def h_dist_from_rival(self):
         pos1 = self.pos
@@ -153,7 +145,7 @@ class Player(AbstractPlayer):
         return np.abs(self.pos[0] - pos[0]) + np.abs(self.pos[1] - pos[1])
 
     def h_minimax(self, pos):
-        v1 = len(self.h_successors_by_depth(pos, min(self.board.shape)))
+        v1 = self.h_successors_by_depth(pos, min(self.board.shape))
         v2 = self.h_dist_from_rival() / self.board.size
         v3 = self.h_directions_diff() / 3
         v4 = self.fruits_ate
@@ -161,7 +153,27 @@ class Player(AbstractPlayer):
 
     ########## helper functions for MiniMax algorithm ##########
     # TODO: add here the utility, succ, and perform_move functions used in MiniMax algorithm
-    def utility(self, pos):
+    def utility(self, pos, is_it_me):
+        if is_it_me:
+            my_pos = pos
+            rival_pos = self.rival
+        else:
+            my_pos = self.pos
+            rival_pos = pos
+
+        assert (self.board[my_pos] == 1)
+        assert (self.board[rival_pos] == 2)
+
+        my_moves = self.succ(my_pos)
+        rival_moves = self.succ(rival_pos)
+
+        win, lose = float('inf'), float('-inf')
+
+        if len(rival_moves) == 0:
+            return win
+        elif len(my_moves) == 0:
+            return lose
+
         return self.h_minimax(pos)
 
     def succ(self, pos):
@@ -198,3 +210,8 @@ class Player(AbstractPlayer):
                 self.board[pos] = 0
 
         self.board[next_pos] = player_index
+
+        if player_index == 1:
+            self.pos = next_pos
+        elif player_index == 2:
+            self.rival = next_pos
