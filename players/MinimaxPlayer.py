@@ -7,6 +7,7 @@ from SearchAlgos import MiniMax
 import numpy as np
 import time
 
+
 class Player(AbstractPlayer):
     def __init__(self, game_time, penalty_score):
         AbstractPlayer.__init__(self, game_time,
@@ -20,6 +21,9 @@ class Player(AbstractPlayer):
         self.buffer = 50
         self.rival = None
         self.fruits_ate = 0
+        self.score = 0
+        self.rival_score = 0
+        self.penalty_score = penalty_score
 
     def set_game_params(self, board):
         """Set the game parameters needed for this player.
@@ -62,7 +66,9 @@ class Player(AbstractPlayer):
             minimax_algo = MiniMax(self.utility, self.succ, self.perform_move, None)
             players_positions = [self.pos, self.rival]
             score, direction = minimax_algo.search(players_positions, depth, True)
-            print('score=' + str(score) + ' direction=' + str(direction) + ' depth=' + str(depth))
+            print('score=' + str(score) + ' direction=' + str(direction) + ' depth=' + str(depth) +
+                  ' fruits_ate=' + str(self.fruits_ate) + ' fruits_score=' + str(self.score) +
+                  ' rival_score=' + str(self.rival_score))
             depth += 1
             if best_direction is None or score > best_score:
                 best_score = score
@@ -72,6 +78,9 @@ class Player(AbstractPlayer):
 
         i = self.pos[0] + best_direction[0]
         j = self.pos[1] + best_direction[1]
+
+        if self.board[(i, j)] > 2:
+            self.score += self.board[(i, j)]
 
         self.perform_move(self.pos, (i, j))
 
@@ -86,6 +95,7 @@ class Player(AbstractPlayer):
         No output is expected
         """
         # TODO: erase the following line and implement this function.
+        self.rival_score += self.board[pos]
         self.board[pos] = 2
         self.board[self.rival] = -1
         self.rival = pos
@@ -166,13 +176,18 @@ class Player(AbstractPlayer):
 
         my_moves = self.succ(my_pos)
         rival_moves = self.succ(rival_pos)
-
         win, lose = float('inf'), float('-inf')
 
-        if len(rival_moves) == 0 and len(my_moves) > 0:
-            return win
-        elif len(my_moves) == 0 and len(rival_moves) > 0:
-            return lose
+        if len(rival_moves) == 0 and len(my_moves) > 0:  # end of game and penalty goes to rival
+            if self.score + self.penalty_score > self.rival_score:
+                return win
+            else:
+                return lose
+        elif len(my_moves) == 0 and len(rival_moves) > 0:  # end of game and penalty goes to me
+            if self.score > self.rival_score + self.penalty_score:
+                return win
+            else:
+                return lose
 
         return self.h_minimax(pos)
 
@@ -197,8 +212,9 @@ class Player(AbstractPlayer):
         player_index = self.board[pos]
 
         if self.board[next_pos] != -1:  # moving forward
-            if next_pos in self.fruits_states and player_index == 1:
-                self.fruits_ate += 1
+            if next_pos in self.fruits_states:
+                if player_index == 1:
+                    self.fruits_ate += 1
             self.board[pos] = -1
 
         else:  # returning backward
