@@ -148,13 +148,14 @@ class Player(AbstractPlayer):
 
     def h_dist_from_closest_fruit(self):
         if len(self.fruits_states) == 0:
-            return 0
+            return 1
         min_distance = float('-inf')
         for fruit in self.fruits_states:
             distance = self.manhattan_distance(fruit)
             if distance > min_distance:
                 min_distance = distance
-        assert(min_distance != float('-inf'))
+        if min_distance < 1:
+            min_distance = 1
         return min_distance
 
     def h_minimax(self, pos):
@@ -162,7 +163,7 @@ class Player(AbstractPlayer):
         v2 = self.h_dist_from_rival() / min(self.board.shape)
         v3 = self.h_directions_diff() / 2
         v4 = self.h_dist_from_closest_fruit() / min(self.board.shape)
-        return v1 - v2 + v3 - v4
+        return (v1 - v2 + v3) / pow(v4, 2)
 
     ########## helper functions for MiniMax algorithm ##########
     # TODO: add here the utility, succ, and perform_move functions used in MiniMax algorithm
@@ -177,7 +178,12 @@ class Player(AbstractPlayer):
         rival_moves = self.succ(rival_pos)
         win, lose = float('inf'), float('-inf')
 
-        if len(rival_moves) == 0 and len(my_moves) > 0:  # end of game and penalty goes to rival
+        if len(rival_moves) == 0 and len(my_moves) == 0: # end of game and penalty goes to both
+            if self.fruits_score > self.rival_pos_score:
+                return win
+            else:
+                return lose
+        elif len(rival_moves) == 0 and len(my_moves) > 0:  # end of game and penalty goes to rival
             if self.fruits_score + self.penalty_score > self.rival_pos_score:
                 return win
             else:
