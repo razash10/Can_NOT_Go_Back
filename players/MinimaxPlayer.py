@@ -117,10 +117,6 @@ class Player(AbstractPlayer):
         else:
             return False
 
-    def time_left(self):
-        #   Compute time left for the run in ms
-        return (self.time - (time.time() - self.start)) * 1000
-
     def h_successors_by_depth(self, pos, depth):
         temp_board = self.board
         queue = [pos]
