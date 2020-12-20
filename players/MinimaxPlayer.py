@@ -13,13 +13,17 @@ class Player(AbstractPlayer):
         AbstractPlayer.__init__(self, game_time,
                                 penalty_score)  # keep the inheritance of the parent's (AbstractPlayer) __init__()
         # TODO: initialize more fields, if needed, and the Minimax algorithm from SearchAlgos.py
+        self.penalty_score = penalty_score
         self.board = None
         self.pos = None
-        self.fruits_states = {}
         self.rival_pos = None
+        self.moves_for_fruits = None
+        self.fruits_dict = {}
+        self.fruits_ate = {}
+        self.rival_fruits_ate = {}
         self.fruits_score = 0
-        self.rival_pos_score = 0
-        self.penalty_score = penalty_score
+        self.rival_fruits_score = 0
+        self.first_turn = True
 
     def set_game_params(self, board):
         """Set the game parameters needed for this player.
@@ -32,14 +36,12 @@ class Player(AbstractPlayer):
         # TODO: erase the following line and implement this function.
         self.board = board
         pos = np.where(board == 1)
+        rival_pos = np.where(board == 2)
         # convert pos to tuple of ints
         self.pos = tuple(ax[0] for ax in pos)
-        for i in range(len(board)):
-            for j in range(len(board[i])):
-                if board[i][j] > 2:
-                    self.fruits_states[(i, j)] = board[i][j]
-                if board[i][j] == 2:
-                    self.rival_pos = (i, j)
+        self.rival_pos = tuple(ax[0] for ax in rival_pos)
+        self.moves_for_fruits = min(self.board.shape)
+
 
     def make_move(self, time_limit, players_score):
         """Make move with this Player.
@@ -57,13 +59,18 @@ class Player(AbstractPlayer):
         limit = min(self.board.shape) * 3
         time_left = (time_limit - (time.time() - start_time)) * 1000
 
+        print()
+        print('fruits_score=' + str(self.fruits_score) + ' rival_fruits_score=' + str(self.rival_fruits_score))
+        print('fruits_ate=' + str(self.fruits_ate) + ' rival_fruits_ate=' + str(self.rival_fruits_ate))
+        print('fruits_dict=' + str(self.fruits_dict))
+        print()
+
         # At least "buffer" in ms left to run
         while time_left > buffer and depth <= limit:
             minimax_algo = MiniMax(self.utility, self.succ, self.perform_move, None)
             players_positions = [self.pos, self.rival_pos]
             score, direction = minimax_algo.search(players_positions, depth, True)
-            print('score=' + str(score) + ' direction=' + str(direction) + ' depth=' + str(depth) +
-                  ' fruits_score=' + str(self.fruits_score) + ' rival_score=' + str(self.rival_pos_score))
+            print('score=' + str(score) + ' direction=' + str(direction) + ' depth=' + str(depth))
             depth += 1
             if best_direction is None or score > best_score:
                 best_score = score
@@ -75,12 +82,18 @@ class Player(AbstractPlayer):
         i = self.pos[0] + best_direction[0]
         j = self.pos[1] + best_direction[1]
 
-        if self.board[(i, j)] > 2:
-            self.fruits_score += self.board[(i, j)]
-
         self.perform_move(self.pos, (i, j))
 
         self.pos = (i, j)
+
+        if self.moves_for_fruits > 0:
+            self.moves_for_fruits -= 1
+
+        print()
+        print('fruits_score=' + str(self.fruits_score) + ' rival_fruits_score=' + str(self.rival_fruits_score))
+        print('fruits_ate=' + str(self.fruits_ate) + ' rival_fruits_ate=' + str(self.rival_fruits_ate))
+        print('fruits_dict=' + str(self.fruits_dict))
+        print()
 
         return best_direction
 
@@ -91,10 +104,12 @@ class Player(AbstractPlayer):
         No output is expected
         """
         # TODO: erase the following line and implement this function.
-        self.rival_pos_score += self.board[pos]
-        self.board[pos] = 2
-        self.board[self.rival_pos] = -1
-        self.rival_pos = pos
+        if self.first_turn:
+            self.first_turn = False
+            if self.board[pos] > 0:
+                self.rival_fruits_ate[pos] = self.board[pos]
+                self.rival_fruits_score += self.board[pos]
+        self.perform_move(self.rival_pos, pos)
 
     def update_fruits(self, fruits_on_board_dict):
         """Update your info on the current fruits on board (if needed).
@@ -104,7 +119,8 @@ class Player(AbstractPlayer):
                                     'value' is the value of this fruit.
         No output is expected.
         """
-        self.fruits_states = fruits_on_board_dict
+        self.fruits_dict = fruits_on_board_dict
+
 
     ########## helper functions in class ##########
     # TODO: add here helper functions in class, if needed
@@ -143,27 +159,49 @@ class Player(AbstractPlayer):
     def h_directions_diff(self):
         return len(self.succ(self.pos)) - len(self.succ(self.rival_pos))
 
-    def manhattan_distance(self, pos):
-        return np.abs(self.pos[0] - pos[0]) + np.abs(self.pos[1] - pos[1])
+    def manhattan_distance(self, pos, pos2=None):
+        if pos2 is None:
+            return np.abs(self.pos[0] - pos[0]) + np.abs(self.pos[1] - pos[1])
+        else:
+            return np.abs(pos[0] - pos2[0]) + np.abs(pos[1] - pos2[1])
 
-    def h_dist_from_closest_fruit(self):
-        if len(self.fruits_states) == 0:
-            return 1
-        min_distance = float('-inf')
-        for fruit in self.fruits_states:
-            distance = self.manhattan_distance(fruit)
-            if distance > min_distance:
+    def h_dist_from_closest_fruit(self, pos):
+        if len(self.fruits_dict) == 0 or self.moves_for_fruits <= 0:
+            return min(self.board.shape)
+
+        min_distance = float('inf')
+
+        for fruit in self.fruits_dict:
+            distance = self.manhattan_distance(pos, fruit)
+            if distance < min_distance and distance <= self.moves_for_fruits:
                 min_distance = distance
-        if min_distance < 1:
-            min_distance = 1
-        return min_distance
+
+        if min_distance > self.moves_for_fruits or min_distance < 1:
+            min_distance = min(self.board.shape)
+
+        diff_scores = self.fruits_score - self.rival_fruits_score
+        if diff_scores == 0:
+            diff_scores = 1
+
+        return min_distance / diff_scores
 
     def h_minimax(self, pos):
         v1 = self.h_successors_by_depth(pos, min(self.board.shape))
         v2 = self.h_dist_from_rival() / min(self.board.shape)
-        v3 = self.h_directions_diff() / 2
-        v4 = self.h_dist_from_closest_fruit() / min(self.board.shape)
-        return (v1 - v2 + v3) / pow(v4, 2)
+        v3 = self.h_directions_diff() / 3
+        v4 = self.h_dist_from_closest_fruit(pos)
+        return (v1 - v2 + v3) / v4
+
+    def update_fruits_scores(self, player_index):
+        if player_index == 1:
+            self.fruits_score = 0
+            for fruit in self.fruits_ate:
+                self.fruits_score += self.fruits_ate[fruit]
+        elif player_index == 2:
+            self.rival_fruits_score = 0
+            for fruit in self.rival_fruits_ate:
+                self.rival_fruits_score += self.rival_fruits_ate[fruit]
+
 
     ########## helper functions for MiniMax algorithm ##########
     # TODO: add here the utility, succ, and perform_move functions used in MiniMax algorithm
@@ -176,23 +214,29 @@ class Player(AbstractPlayer):
 
         my_moves = self.succ(my_pos)
         rival_moves = self.succ(rival_pos)
-        win, lose = float('inf'), float('-inf')
+        win, draw, lose = float('inf'), 0, float('-inf')
 
         if len(rival_moves) == 0 and len(my_moves) == 0:  # end of game and penalty goes to both
-            if self.fruits_score > self.rival_pos_score:
+            if self.fruits_score > self.rival_fruits_score:
                 return win
-            else:
+            elif self.fruits_score < self.rival_fruits_score:
                 return lose
+            else:
+                return draw
         elif len(rival_moves) == 0 and len(my_moves) > 0:  # end of game and penalty goes to rival
-            if self.fruits_score + self.penalty_score > self.rival_pos_score:
+            if self.fruits_score + self.penalty_score > self.rival_fruits_score:
                 return win
-            else:
+            elif self.fruits_score + self.penalty_score < self.rival_fruits_score:
                 return lose
+            else:
+                return draw
         elif len(my_moves) == 0 and len(rival_moves) > 0:  # end of game and penalty goes to me
-            if self.fruits_score > self.rival_pos_score + self.penalty_score:
+            if self.fruits_score > self.rival_fruits_score + self.penalty_score:
                 return win
-            else:
+            elif self.fruits_score < self.rival_fruits_score + self.penalty_score:
                 return lose
+            else:
+                return draw
 
         return self.h_minimax(my_pos)
 
@@ -218,10 +262,22 @@ class Player(AbstractPlayer):
 
         if self.board[next_pos] != -1:  # moving forward
             self.board[pos] = -1
+            if next_pos in self.fruits_dict:
+                fruit_val = self.fruits_dict.pop(next_pos)
+                if player_index == 1:
+                    self.fruits_ate[next_pos] = fruit_val
+                elif player_index == 2:
+                    self.rival_fruits_ate[next_pos] = fruit_val
 
         else:  # returning backward
-            if pos in self.fruits_states:
-                self.board[pos] = self.fruits_states[pos]
+            if pos in self.fruits_ate:
+                fruit_val = self.fruits_ate.pop(pos)
+                self.board[pos] = fruit_val
+                self.fruits_dict[pos] = fruit_val
+            elif pos in self.rival_fruits_ate:
+                fruit_val = self.rival_fruits_ate.pop(pos)
+                self.board[pos] = fruit_val
+                self.fruits_dict[pos] = fruit_val
             else:
                 self.board[pos] = 0
 
@@ -231,3 +287,5 @@ class Player(AbstractPlayer):
             self.pos = next_pos
         elif player_index == 2:
             self.rival_pos = next_pos
+
+        self.update_fruits_scores(player_index)

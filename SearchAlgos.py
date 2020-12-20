@@ -62,6 +62,9 @@ class MiniMax(SearchAlgos):
 
             self.perform_move(next_pos, pos)
 
+        if len(scores) == 0:
+            return float('-inf')
+
         return max(scores) if maximizing_player else min(scores)
 
 
