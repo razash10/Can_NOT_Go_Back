@@ -69,7 +69,6 @@ class Player(AbstractPlayer):
                 best_score = score
                 best_direction = direction
             time_left = (time_limit - (time.time() - start_time)) * 1000
-            print('time_left=' + str(time_left))
 
         assert (best_direction is not None)
 
