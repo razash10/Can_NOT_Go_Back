@@ -178,7 +178,7 @@ class Player(AbstractPlayer):
         rival_moves = self.succ(rival_pos)
         win, lose = float('inf'), float('-inf')
 
-        if len(rival_moves) == 0 and len(my_moves) == 0: # end of game and penalty goes to both
+        if len(rival_moves) == 0 and len(my_moves) == 0:  # end of game and penalty goes to both
             if self.fruits_score > self.rival_pos_score:
                 return win
             else:

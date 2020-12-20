@@ -2,7 +2,6 @@
 """
 from utils import ALPHA_VALUE_INIT, BETA_VALUE_INIT
 # TODO: you can import more modules, if needed
-from utils import get_directions
 import operator
 
 
@@ -46,25 +45,22 @@ class MiniMax(SearchAlgos):
 
         scores = []
         for next_pos in self.succ(pos):
-            self.perform_move(pos, next_pos)
-            if maximizing_player:
-                score = self.utility([next_pos, state[1]])
-            else:
-                score = self.utility([state[0], next_pos])
-
             direction = None
+            self.perform_move(pos, next_pos)
+
             if maximizing_player:
                 state[0] = next_pos
+                score = self.utility(state)
                 direction = tuple(map(operator.sub, next_pos, pos))
-                assert (direction in get_directions())
-            else:
-                state[1] = next_pos
-            scores.append((score + self.search(state, depth - 1, not maximizing_player)[0], direction))
-            self.perform_move(next_pos, pos)
-            if maximizing_player:
+                scores.append((score + self.search(state, depth - 1, not maximizing_player)[0], direction))
                 state[0] = pos
             else:
+                state[1] = next_pos
+                score = self.utility(state)
+                scores.append((score + self.search(state, depth - 1, not maximizing_player)[0], direction))
                 state[1] = pos
+
+            self.perform_move(next_pos, pos)
 
         return max(scores) if maximizing_player else min(scores)
 
