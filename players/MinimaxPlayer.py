@@ -19,10 +19,9 @@ class Player(AbstractPlayer):
         self.time = 0
         self.start = 0
         self.buffer = 50
-        self.rival = None
-        self.fruits_ate = 0
-        self.score = 0
-        self.rival_score = 0
+        self.rival_pos = None
+        self.fruits_score = 0
+        self.rival_pos_score = 0
         self.penalty_score = penalty_score
 
     def set_game_params(self, board):
@@ -43,7 +42,7 @@ class Player(AbstractPlayer):
                 if board[i][j] > 2:
                     self.fruits_states[(i, j)] = board[i][j]
                 if board[i][j] == 2:
-                    self.rival = (i, j)
+                    self.rival_pos = (i, j)
 
     def make_move(self, time_limit, players_score):
         """Make move with this Player.
@@ -64,11 +63,10 @@ class Player(AbstractPlayer):
         # At least "buffer" in ms left to run
         while self.time_left() > self.buffer and depth <= limit:
             minimax_algo = MiniMax(self.utility, self.succ, self.perform_move, None)
-            players_positions = [self.pos, self.rival]
+            players_positions = [self.pos, self.rival_pos]
             score, direction = minimax_algo.search(players_positions, depth, True)
             print('score=' + str(score) + ' direction=' + str(direction) + ' depth=' + str(depth) +
-                  ' fruits_ate=' + str(self.fruits_ate) + ' fruits_score=' + str(self.score) +
-                  ' rival_score=' + str(self.rival_score))
+                  ' fruits_score=' + str(self.fruits_score) + ' rival_score=' + str(self.rival_pos_score))
             depth += 1
             if best_direction is None or score > best_score:
                 best_score = score
@@ -80,7 +78,7 @@ class Player(AbstractPlayer):
         j = self.pos[1] + best_direction[1]
 
         if self.board[(i, j)] > 2:
-            self.score += self.board[(i, j)]
+            self.fruits_score += self.board[(i, j)]
 
         self.perform_move(self.pos, (i, j))
 
@@ -95,10 +93,10 @@ class Player(AbstractPlayer):
         No output is expected
         """
         # TODO: erase the following line and implement this function.
-        self.rival_score += self.board[pos]
+        self.rival_pos_score += self.board[pos]
         self.board[pos] = 2
-        self.board[self.rival] = -1
-        self.rival = pos
+        self.board[self.rival_pos] = -1
+        self.rival_pos = pos
 
     def update_fruits(self, fruits_on_board_dict):
         """Update your info on the current fruits on board (if needed).
@@ -145,31 +143,38 @@ class Player(AbstractPlayer):
 
     def h_dist_from_rival(self):
         pos1 = self.pos
-        pos2 = self.rival
+        pos2 = self.rival_pos
         return np.abs(pos1[0] - pos2[0]) + np.abs(pos1[1] - pos2[1])
 
     def h_directions_diff(self):
-        return len(self.succ(self.pos)) - len(self.succ(self.rival))
+        return len(self.succ(self.pos)) - len(self.succ(self.rival_pos))
 
     def manhattan_distance(self, pos):
         return np.abs(self.pos[0] - pos[0]) + np.abs(self.pos[1] - pos[1])
 
+    def h_dist_from_closest_fruit(self):
+        if len(self.fruits_states) == 0:
+            return 0
+        min_distance = float('-inf')
+        for fruit in self.fruits_states:
+            distance = self.manhattan_distance(fruit)
+            if distance > min_distance:
+                min_distance = distance
+        assert(min_distance != float('-inf'))
+        return min_distance
+
     def h_minimax(self, pos):
         v1 = self.h_successors_by_depth(pos, min(self.board.shape))
-        v2 = self.h_dist_from_rival() / self.board.size
-        v3 = self.h_directions_diff() / 3
-        v4 = self.fruits_ate
-        return pow((v1 - v2 + v3), (v4 + 1))
+        v2 = self.h_dist_from_rival() / min(self.board.shape)
+        v3 = self.h_directions_diff() / 2
+        v4 = self.h_dist_from_closest_fruit() / min(self.board.shape)
+        return v1 - v2 + v3 - v4
 
     ########## helper functions for MiniMax algorithm ##########
     # TODO: add here the utility, succ, and perform_move functions used in MiniMax algorithm
-    def utility(self, pos, is_it_me):
-        if is_it_me:
-            my_pos = pos
-            rival_pos = self.rival
-        else:
-            my_pos = self.pos
-            rival_pos = pos
+    def utility(self, state):
+        my_pos = state[0]
+        rival_pos = state[1]
 
         assert (self.board[my_pos] == 1)
         assert (self.board[rival_pos] == 2)
@@ -179,17 +184,17 @@ class Player(AbstractPlayer):
         win, lose = float('inf'), float('-inf')
 
         if len(rival_moves) == 0 and len(my_moves) > 0:  # end of game and penalty goes to rival
-            if self.score + self.penalty_score > self.rival_score:
+            if self.fruits_score + self.penalty_score > self.rival_pos_score:
                 return win
             else:
                 return lose
         elif len(my_moves) == 0 and len(rival_moves) > 0:  # end of game and penalty goes to me
-            if self.score > self.rival_score + self.penalty_score:
+            if self.fruits_score > self.rival_pos_score + self.penalty_score:
                 return win
             else:
                 return lose
 
-        return self.h_minimax(pos)
+        return self.h_minimax(my_pos)
 
     def succ(self, pos):
         next_poses = []
@@ -212,16 +217,11 @@ class Player(AbstractPlayer):
         player_index = self.board[pos]
 
         if self.board[next_pos] != -1:  # moving forward
-            if next_pos in self.fruits_states:
-                if player_index == 1:
-                    self.fruits_ate += 1
             self.board[pos] = -1
 
         else:  # returning backward
             if pos in self.fruits_states:
                 self.board[pos] = self.fruits_states[pos]
-                if player_index == 1:
-                    self.fruits_ate -= 1
             else:
                 self.board[pos] = 0
 
@@ -230,4 +230,4 @@ class Player(AbstractPlayer):
         if player_index == 1:
             self.pos = next_pos
         elif player_index == 2:
-            self.rival = next_pos
+            self.rival_pos = next_pos
