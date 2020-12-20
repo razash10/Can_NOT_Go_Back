@@ -16,9 +16,6 @@ class Player(AbstractPlayer):
         self.board = None
         self.pos = None
         self.fruits_states = {}
-        self.time = 0
-        self.start = 0
-        self.buffer = 50
         self.rival_pos = None
         self.fruits_score = 0
         self.rival_pos_score = 0
@@ -52,16 +49,16 @@ class Player(AbstractPlayer):
             - direction: tuple, specifing the Player's movement, chosen from self.directions
         """
         # TODO: erase the following line and implement this function.
-
-        self.time = time_limit
-        self.start = time.time()
+        start_time = time.time()
+        buffer = 1000
         depth = 1
         best_direction = None
         best_score = float('-inf')
         limit = min(self.board.shape) * 3
+        time_left = (time_limit - (time.time() - start_time)) * 1000
 
         # At least "buffer" in ms left to run
-        while self.time_left() > self.buffer and depth <= limit:
+        while time_left > buffer and depth <= limit:
             minimax_algo = MiniMax(self.utility, self.succ, self.perform_move, None)
             players_positions = [self.pos, self.rival_pos]
             score, direction = minimax_algo.search(players_positions, depth, True)
@@ -71,6 +68,8 @@ class Player(AbstractPlayer):
             if best_direction is None or score > best_score:
                 best_score = score
                 best_direction = direction
+            time_left = (time_limit - (time.time() - start_time)) * 1000
+            print('time_left=' + str(time_left))
 
         assert (best_direction is not None)
 
