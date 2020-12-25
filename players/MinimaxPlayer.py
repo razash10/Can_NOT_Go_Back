@@ -42,7 +42,6 @@ class Player(AbstractPlayer):
         self.rival_pos = tuple(ax[0] for ax in rival_pos)
         self.moves_for_fruits = min(self.board.shape)
 
-
     def make_move(self, time_limit, players_score):
         """Make move with this Player.
         input:
@@ -121,7 +120,6 @@ class Player(AbstractPlayer):
         """
         self.fruits_dict = fruits_on_board_dict
 
-
     ########## helper functions in class ##########
     # TODO: add here helper functions in class, if needed
     def is_legal_move(self, next_pos):
@@ -165,32 +163,19 @@ class Player(AbstractPlayer):
         else:
             return np.abs(pos[0] - pos2[0]) + np.abs(pos[1] - pos2[1])
 
-    def h_dist_from_closest_fruit(self, pos):
-        if len(self.fruits_dict) == 0 or self.moves_for_fruits <= 0:
-            return min(self.board.shape)
-
-        min_distance = float('inf')
-
-        for fruit in self.fruits_dict:
-            distance = self.manhattan_distance(pos, fruit)
-            if distance < min_distance and distance <= self.moves_for_fruits:
-                min_distance = distance
-
-        if min_distance > self.moves_for_fruits or min_distance < 1:
-            min_distance = min(self.board.shape)
-
-        diff_scores = self.fruits_score - self.rival_fruits_score
-        if diff_scores == 0:
-            diff_scores = 1
-
-        return min_distance / diff_scores
+    def h_diff_fruits_values(self, pos):
+        assert self.board[pos] in [1, 2]
+        if self.board[pos] == 1:
+            return self.fruits_score - self.rival_fruits_score
+        elif self.board[pos] == 2:
+            return self.rival_fruits_score - self.fruits_score
 
     def h_minimax(self, pos):
         v1 = self.h_successors_by_depth(pos, min(self.board.shape))
         v2 = self.h_dist_from_rival() / min(self.board.shape)
         v3 = self.h_directions_diff() / 3
-        v4 = self.h_dist_from_closest_fruit(pos)
-        return (v1 - v2 + v3) / v4
+        v4 = self.h_diff_fruits_values(pos) / self.penalty_score
+        return v1 - v2 + v3 + v4
 
     def update_fruits_scores(self, player_index):
         if player_index == 1:
@@ -201,7 +186,6 @@ class Player(AbstractPlayer):
             self.rival_fruits_score = 0
             for fruit in self.rival_fruits_ate:
                 self.rival_fruits_score += self.rival_fruits_ate[fruit]
-
 
     ########## helper functions for MiniMax algorithm ##########
     # TODO: add here the utility, succ, and perform_move functions used in MiniMax algorithm
