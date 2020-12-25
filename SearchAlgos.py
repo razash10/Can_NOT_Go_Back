@@ -80,4 +80,51 @@ class AlphaBeta(SearchAlgos):
         :return: A tuple: (The min max algorithm value, The direction in case of max node or None in min mode)
         """
         # TODO: erase the following line and implement this function.
-        raise NotImplementedError
+        pos = None
+        if maximizing_player:
+            pos = state[0]
+        else:
+            pos = state[1]
+
+        if (depth <= 0) or (len(self.succ(pos)) == 0):
+            res = (0, None)
+            return res
+
+        scores = []
+        for next_pos in self.succ(pos):
+            direction = None
+            self.perform_move(pos, next_pos)
+
+            if maximizing_player:
+                state[0] = next_pos
+                direction = tuple(map(operator.sub, next_pos, pos))
+                score = self.utility(state)
+                scores.append((score + self.search(state, depth - 1, not maximizing_player)[0], direction))
+                curr_max = max(scores)[0]
+                alpha = max(curr_max, alpha)
+                if curr_max >= beta:
+                    res = (float('inf'), direction)
+                    state[0] = pos
+                    self.perform_move(next_pos, pos)
+                    return res
+                state[0] = pos
+
+            else:
+                state[1] = next_pos
+                score = self.utility(state)
+                scores.append((score + self.search(state, depth - 1, not maximizing_player)[0], direction))
+                curr_min = min(scores)[0]
+                beta = min(curr_min, beta)
+                if curr_min <= alpha:
+                    res = (float('-inf'), direction)
+                    state[1] = pos
+                    self.perform_move(next_pos, pos)
+                    return res
+                state[1] = pos
+
+            self.perform_move(next_pos, pos)
+
+        if len(scores) == 0:
+            return float('-inf')
+
+        return max(scores) if maximizing_player else min(scores)

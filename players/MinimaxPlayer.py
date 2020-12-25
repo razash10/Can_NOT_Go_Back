@@ -6,6 +6,7 @@ from players.AbstractPlayer import AbstractPlayer
 from SearchAlgos import MiniMax
 import numpy as np
 import time
+import heuristics
 
 
 class Player(AbstractPlayer):
@@ -17,7 +18,6 @@ class Player(AbstractPlayer):
         self.board = None
         self.pos = None
         self.rival_pos = None
-        self.moves_for_fruits = None
         self.fruits_dict = {}
         self.fruits_ate = {}
         self.rival_fruits_ate = {}
@@ -40,7 +40,6 @@ class Player(AbstractPlayer):
         # convert pos to tuple of ints
         self.pos = tuple(ax[0] for ax in pos)
         self.rival_pos = tuple(ax[0] for ax in rival_pos)
-        self.moves_for_fruits = min(self.board.shape)
 
     def make_move(self, time_limit, players_score):
         """Make move with this Player.
@@ -85,9 +84,6 @@ class Player(AbstractPlayer):
 
         self.pos = (i, j)
 
-        if self.moves_for_fruits > 0:
-            self.moves_for_fruits -= 1
-
         print()
         print('fruits_score=' + str(self.fruits_score) + ' rival_fruits_score=' + str(self.rival_fruits_score))
         print('fruits_ate=' + str(self.fruits_ate) + ' rival_fruits_ate=' + str(self.rival_fruits_ate))
@@ -122,61 +118,6 @@ class Player(AbstractPlayer):
 
     ########## helper functions in class ##########
     # TODO: add here helper functions in class, if needed
-    def is_legal_move(self, next_pos):
-        i = next_pos[0]
-        j = next_pos[1]
-        if 0 <= i < len(self.board) and 0 <= j < len(self.board[0]) and (self.board[i][j] not in [-1, 1, 2]):
-            return True
-        else:
-            return False
-
-    def h_successors_by_depth(self, pos, depth):
-        temp_board = self.board
-        queue = [pos]
-        count_successors = 0
-
-        while queue:
-            s = queue.pop(0)
-            count_successors += 1
-            for i in self.succ(s):
-                if self.board[i] != -2:
-                    queue.append(i)
-                    self.board[i] = -2
-            depth -= 1
-            if depth <= 0:
-                break
-
-        self.board = temp_board
-        return count_successors
-
-    def h_dist_from_rival(self):
-        pos1 = self.pos
-        pos2 = self.rival_pos
-        return np.abs(pos1[0] - pos2[0]) + np.abs(pos1[1] - pos2[1])
-
-    def h_directions_diff(self):
-        return len(self.succ(self.pos)) - len(self.succ(self.rival_pos))
-
-    def manhattan_distance(self, pos, pos2=None):
-        if pos2 is None:
-            return np.abs(self.pos[0] - pos[0]) + np.abs(self.pos[1] - pos[1])
-        else:
-            return np.abs(pos[0] - pos2[0]) + np.abs(pos[1] - pos2[1])
-
-    def h_diff_fruits_values(self, pos):
-        assert self.board[pos] in [1, 2]
-        if self.board[pos] == 1:
-            return self.fruits_score - self.rival_fruits_score
-        elif self.board[pos] == 2:
-            return self.rival_fruits_score - self.fruits_score
-
-    def h_minimax(self, pos):
-        v1 = self.h_successors_by_depth(pos, min(self.board.shape))
-        v2 = self.h_dist_from_rival() / min(self.board.shape)
-        v3 = self.h_directions_diff() / 3
-        v4 = self.h_diff_fruits_values(pos) / self.penalty_score
-        return v1 - v2 + v3 + v4
-
     def update_fruits_scores(self, player_index):
         if player_index == 1:
             self.fruits_score = 0
@@ -222,7 +163,7 @@ class Player(AbstractPlayer):
             else:
                 return draw
 
-        return self.h_minimax(my_pos)
+        return heuristics.h_minimax(self, my_pos)
 
     def succ(self, pos):
         next_poses = []
