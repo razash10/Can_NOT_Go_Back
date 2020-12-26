@@ -3,6 +3,7 @@
 from utils import ALPHA_VALUE_INIT, BETA_VALUE_INIT
 # TODO: you can import more modules, if needed
 import operator
+import time
 
 
 class SearchAlgos:
@@ -39,13 +40,17 @@ class MiniMax(SearchAlgos):
         else:
             pos = state[1]
 
-        if (depth <= 0) or (len(self.succ(pos)) == 0):
+        buffer = 200
+        time_left = (state[3] - (time.time() - state[2])) * 1000
+
+        if time_left < buffer or depth <= 0 or len(self.succ(pos)) == 0:
             res = (0, None)
             return res
 
         scores = []
         for next_pos in self.succ(pos):
             direction = None
+
             self.perform_move(pos, next_pos)
 
             if maximizing_player:
@@ -63,7 +68,8 @@ class MiniMax(SearchAlgos):
             self.perform_move(next_pos, pos)
 
         if len(scores) == 0:
-            return float('-inf')
+            res = (0, None)
+            return res
 
         return max(scores) if maximizing_player else min(scores)
 
@@ -86,7 +92,10 @@ class AlphaBeta(SearchAlgos):
         else:
             pos = state[1]
 
-        if (depth <= 0) or (len(self.succ(pos)) == 0):
+        buffer = 200
+        time_left = (state[3] - (time.time() - state[2])) * 1000
+
+        if time_left < buffer or depth <= 0 or len(self.succ(pos)) == 0:
             res = (0, None)
             return res
 
@@ -125,6 +134,7 @@ class AlphaBeta(SearchAlgos):
             self.perform_move(next_pos, pos)
 
         if len(scores) == 0:
-            return float('-inf')
+            res = (0, None)
+            return res
 
         return max(scores) if maximizing_player else min(scores)

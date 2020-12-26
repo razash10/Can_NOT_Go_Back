@@ -41,7 +41,7 @@ def h_diff_fruits_values(player, pos):
 
 def h_minimax(player, pos):
     v1 = h_successors_by_depth(player, pos, (min(player.board.shape) / 4))
-    v2 = h_dist_from_rival(player) / (player.board.shape[0] + player.board.shape[1])
+    v2 = h_dist_from_rival(player) / player.board.size
     v3 = h_directions_diff(player) / 3
     v4 = h_diff_fruits_values(player, pos) / player.penalty_score
     return v1 - v2 + v3 + v4

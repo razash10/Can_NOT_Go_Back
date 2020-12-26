@@ -50,11 +50,11 @@ class Player(AbstractPlayer):
         """
         # TODO: erase the following line and implement this function.
         start_time = time.time()
-        buffer = 1000
+        buffer = 200
         depth = 1
         best_direction = None
         best_score = float('-inf')
-        limit = min(self.board.shape) * 3
+        limit = (2 * self.board.size) / 3
         time_left = (time_limit - (time.time() - start_time)) * 1000
 
         print()
@@ -66,8 +66,8 @@ class Player(AbstractPlayer):
         # At least "buffer" in ms left to run
         while time_left > buffer and depth <= limit:
             minimax_algo = AlphaBeta(self.utility, self.succ, self.perform_move, None)
-            players_positions = [self.pos, self.rival_pos]
-            score, direction = minimax_algo.search(players_positions, depth, True)
+            state = [self.pos, self.rival_pos, start_time, time_limit]
+            score, direction = minimax_algo.search(state, depth, True)
             print('score=' + str(score) + ' direction=' + str(direction) + ' depth=' + str(depth))
             depth += 1
             if best_direction is None or score > best_score:
