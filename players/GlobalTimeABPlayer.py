@@ -27,8 +27,8 @@ class Player(AbstractPlayer):
         self.first_turn = True
         self.game_time = game_time
         self.curr_limit = 0
-        self.max_turns = 0
-        self.d = 0
+        self.turns_left = 0
+        self.common_ratio = 0
 
     def set_game_params(self, board):
         """Set the game parameters needed for this player.
@@ -45,12 +45,10 @@ class Player(AbstractPlayer):
         # convert pos to tuple of ints
         self.pos = tuple(ax[0] for ax in pos)
         self.rival_pos = tuple(ax[0] for ax in rival_pos)
-        self.max_turns = round(self.board.size / 2)
-
-        a1 = 0.25  # time for last move in seconds
-        n = self.max_turns
-        s = self.game_time
-        self.d = (2 * s - 2 * a1 * n) / (n * (n - 1))
+        attainable_locations = heuristics.h_successors_by_depth(self, self.pos, self.board.size)
+        self.turns_left = round(attainable_locations / 2)
+        print('turns_left='+str(self.turns_left))
+        self.common_ratio = self.get_best_common_ratio()
 
     def make_move(self, time_limit, players_score):
         """Make move with this Player.
@@ -68,9 +66,10 @@ class Player(AbstractPlayer):
         limit = (2 * self.board.size) / 3
 
         a1 = 0.25  # time for last move in seconds
-        n = self.max_turns
+        n = self.turns_left
+        q = self.common_ratio
 
-        curr_move_time = a1 + self.d * (n - 1)
+        curr_move_time = a1 * pow(q, (n - 1))
 
         if time_limit < curr_move_time:
             curr_move_time = time_limit
@@ -80,7 +79,7 @@ class Player(AbstractPlayer):
         if time_left <= buffer:
             time_left = buffer + 50
 
-        self.max_turns -= 1
+        self.turns_left -= 1
 
         print()
         print('~~~~~~~~~~ curr limit='+str(curr_move_time)+' time left='+str(time_left)+' ~~~~~~~~~~')
@@ -146,6 +145,30 @@ class Player(AbstractPlayer):
             self.rival_fruits_score = 0
             for fruit in self.rival_fruits_ate:
                 self.rival_fruits_score += self.rival_fruits_ate[fruit]
+
+    def get_best_common_ratio(self):
+        s = self.game_time
+        a1 = 0.25  # time for last move in seconds
+        q = 2
+        n = self.turns_left
+        best_s = 0
+        max_iterations = 20
+        factor = 0.5
+
+        for j in range(max_iterations):
+            for i in range(n):
+                best_s += (a1 * pow(q, i))
+            print('$$$$$$$$$$ s='+str(best_s)+' q='+str(q)+' $$$$$$$$$$')
+            if (s-0.01) < best_s < s:
+                return q
+            if best_s < s:
+                q += factor
+            elif best_s > s:
+                q -= factor
+            factor /= 2
+            best_s = 0
+
+        return q
 
     ########## helper functions for AlphaBeta algorithm ##########
     # TODO: add here the utility, succ, and perform_move functions used in AlphaBeta algorithm
