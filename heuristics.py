@@ -2,7 +2,6 @@ import numpy as np
 
 
 def h_successors_by_depth(player, pos, depth):
-    temp_board = player.board
     queue = [pos]
     count_successors = 0
 
@@ -17,7 +16,6 @@ def h_successors_by_depth(player, pos, depth):
         if depth <= 0:
             break
 
-    player.board = temp_board
     return count_successors
 
 

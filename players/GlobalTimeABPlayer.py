@@ -29,6 +29,7 @@ class Player(AbstractPlayer):
         self.curr_limit = 0
         self.turns_left = 0
         self.common_ratio = 0
+        self.spare_time = 0
 
     def set_game_params(self, board):
         """Set the game parameters needed for this player.
@@ -46,7 +47,12 @@ class Player(AbstractPlayer):
         self.pos = tuple(ax[0] for ax in pos)
         self.rival_pos = tuple(ax[0] for ax in rival_pos)
         attainable_locations = heuristics.h_successors_by_depth(self, self.pos, self.board.size)
-        self.turns_left = round(attainable_locations / 2)
+
+        if self.is_rival_reachable():
+            self.turns_left = round(attainable_locations / 2)
+        else:
+            self.turns_left = attainable_locations
+
         print('turns_left='+str(self.turns_left))
         self.common_ratio = self.get_best_common_ratio()
 
@@ -81,9 +87,10 @@ class Player(AbstractPlayer):
 
         self.turns_left -= 1
 
+        time_left += self.spare_time
+
         print()
-        print('~~~~~~~~~~ curr limit='+str(curr_move_time)+' time left='+str(time_left)+' ~~~~~~~~~~')
-        print()
+        print('~~~~~~~~~~ curr limit=' + str(curr_move_time) + ' time left=' + str(time_left) + ' ~~~~~~~~~~')
 
         # At least "buffer" in ms left to run
         while time_left > buffer and depth <= limit:
@@ -96,6 +103,14 @@ class Player(AbstractPlayer):
                 best_score = score
                 best_direction = direction
             time_left = (curr_move_time - (time.time() - start_time)) * 1000
+            time_left += self.spare_time
+
+        print('~~~~~~~~~~ curr limit=' + str(curr_move_time) + ' time left=' + str(time_left) + ' ~~~~~~~~~~')
+        print()
+
+        self.spare_time = 0
+        if time_left > buffer:
+            self.spare_time += (time_left - buffer)
 
         assert (best_direction is not None)
 
@@ -169,6 +184,34 @@ class Player(AbstractPlayer):
             best_s = 0
 
         return q
+
+    def succ_with_rival(self, pos):
+        next_poses = []
+
+        for d in self.directions:
+            i = pos[0] + d[0]
+            j = pos[1] + d[1]
+
+            # check legal move, including rival pos
+            if 0 <= i < len(self.board) and 0 <= j < len(self.board[0]) and (self.board[i][j] not in [-1, 1]):
+                next_pos = (i, j)
+                next_poses.append(next_pos)
+
+        return next_poses
+
+    def is_rival_reachable(self):
+        queue = [self.pos]
+
+        while queue:
+            s = queue.pop(0)
+            for i in self.succ_with_rival(s):
+                if i == self.rival_pos:
+                    return True
+                if self.board[i] != -3:
+                    queue.append(i)
+                    self.board[i] = -3
+
+        return False
 
     ########## helper functions for AlphaBeta algorithm ##########
     # TODO: add here the utility, succ, and perform_move functions used in AlphaBeta algorithm
