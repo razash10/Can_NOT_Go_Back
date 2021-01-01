@@ -6,8 +6,8 @@ from players.AbstractPlayer import AbstractPlayer
 from SearchAlgos import AlphaBeta
 import numpy as np
 import time
-import heuristics
-import math
+import utils
+import random
 
 
 class Player(AbstractPlayer):
@@ -46,7 +46,7 @@ class Player(AbstractPlayer):
         # convert pos to tuple of ints
         self.pos = tuple(ax[0] for ax in pos)
         self.rival_pos = tuple(ax[0] for ax in rival_pos)
-        attainable_locations = heuristics.h_successors_by_depth(self, self.pos, self.board.size)
+        attainable_locations = utils.h_successors_by_depth(self, self.pos, self.board.size)
         self.turns_left = attainable_locations
 
         print('turns_left='+str(self.turns_left))
@@ -66,7 +66,7 @@ class Player(AbstractPlayer):
         depth = 1
         best_direction = None
         best_score = float('-inf')
-        limit = (2 * self.board.size) / 3
+        limit = self.board.size
 
         a1 = 0.25  # time for last move in seconds
         n = self.turns_left
@@ -109,7 +109,10 @@ class Player(AbstractPlayer):
         if time_left > buffer:
             self.spare_time += (time_left - buffer)
 
-        assert (best_direction is not None)
+        if best_direction is None:
+            available_moves = self.succ(self.pos)
+            random.shuffle(available_moves)
+            best_direction = available_moves[0]
 
         i = self.pos[0] + best_direction[0]
         j = self.pos[1] + best_direction[1]
@@ -217,7 +220,7 @@ class Player(AbstractPlayer):
             else:
                 return draw
 
-        return heuristics.h_minimax(self, my_pos)
+        return utils.h_minimax(self, my_pos)
 
     def succ(self, pos):
         next_poses = []

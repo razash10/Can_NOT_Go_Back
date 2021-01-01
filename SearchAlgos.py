@@ -67,9 +67,7 @@ class MiniMax(SearchAlgos):
 
             self.perform_move(next_pos, pos)
 
-        if len(scores) == 0:
-            res = (0, None)
-            return res
+        assert len(scores) != 0
 
         return max(scores) if maximizing_player else min(scores)
 
@@ -133,8 +131,6 @@ class AlphaBeta(SearchAlgos):
 
             self.perform_move(next_pos, pos)
 
-        if len(scores) == 0:
-            res = (0, None)
-            return res
+        assert len(scores) != 0
 
         return max(scores) if maximizing_player else min(scores)

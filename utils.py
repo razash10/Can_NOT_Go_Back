@@ -8,6 +8,7 @@ import os
 ALPHA_VALUE_INIT = -np.inf
 BETA_VALUE_INIT = np.inf
 
+
 def get_directions():
     """Returns all the possible directions of a player in the game as a list of tuples.
     """
@@ -46,4 +47,47 @@ def get_board_from_csv(board_file_name):
     start_player_2 = (start_player_2[0][0], start_player_2[1][0])
 
     return [(i, j), blocks, [start_player_1, start_player_2]]
-    
+
+
+def h_successors_by_depth(player, pos, depth):
+    queue = [pos]
+    count_successors = 0
+
+    while queue:
+        s = queue.pop(0)
+        count_successors += 1
+        for i in player.succ(s):
+            if player.board[i] != -2:
+                queue.append(i)
+                player.board[i] = -2
+        depth -= 1
+        if depth <= 0:
+            break
+
+    return count_successors
+
+
+def h_dist_from_rival(player):
+    pos1 = player.pos
+    pos2 = player.rival_pos
+    return np.abs(pos1[0] - pos2[0]) + np.abs(pos1[1] - pos2[1])
+
+
+def h_directions_diff(player):
+    return len(player.succ(player.pos)) - len(player.succ(player.rival_pos))
+
+
+def h_diff_fruits_values(player, pos):
+    assert player.board[pos] in [1, 2]
+    if player.board[pos] == 1:
+        return player.fruits_score - player.rival_fruits_score
+    elif player.board[pos] == 2:
+        return player.rival_fruits_score - player.fruits_score
+
+
+def h_minimax(player, pos):
+    v1 = h_successors_by_depth(player, pos, min(player.board.shape))
+    v2 = h_dist_from_rival(player) / player.board.size
+    v3 = h_directions_diff(player) / 3
+    v4 = h_diff_fruits_values(player, pos) / player.penalty_score
+    return v1 - v2 + v3 + v4

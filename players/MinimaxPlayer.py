@@ -6,7 +6,8 @@ from players.AbstractPlayer import AbstractPlayer
 from SearchAlgos import MiniMax
 import numpy as np
 import time
-import heuristics
+import utils
+import random
 
 
 class Player(AbstractPlayer):
@@ -54,17 +55,13 @@ class Player(AbstractPlayer):
         depth = 1
         best_direction = None
         best_score = float('-inf')
-        limit = (2 * self.board.size) / 3
         time_left = (time_limit - (time.time() - start_time)) * 1000
 
         print()
-        print('fruits_score=' + str(self.fruits_score) + ' rival_fruits_score=' + str(self.rival_fruits_score))
-        print('fruits_ate=' + str(self.fruits_ate) + ' rival_fruits_ate=' + str(self.rival_fruits_ate))
-        print('fruits_dict=' + str(self.fruits_dict))
-        print()
+        print("Minimax turn:")
 
         # At least "buffer" in ms left to run
-        while time_left > buffer and depth <= limit:
+        while time_left > buffer:
             minimax_algo = MiniMax(self.utility, self.succ, self.perform_move, None)
             state = [self.pos, self.rival_pos, start_time, time_limit]
             score, direction = minimax_algo.search(state, depth, True)
@@ -75,7 +72,10 @@ class Player(AbstractPlayer):
                 best_direction = direction
             time_left = (time_limit - (time.time() - start_time)) * 1000
 
-        assert (best_direction is not None)
+        if best_direction is None:
+            available_moves = self.succ(self.pos)
+            random.shuffle(available_moves)
+            best_direction = available_moves[0]
 
         i = self.pos[0] + best_direction[0]
         j = self.pos[1] + best_direction[1]
@@ -83,12 +83,6 @@ class Player(AbstractPlayer):
         self.perform_move(self.pos, (i, j))
 
         self.pos = (i, j)
-
-        print()
-        print('fruits_score=' + str(self.fruits_score) + ' rival_fruits_score=' + str(self.rival_fruits_score))
-        print('fruits_ate=' + str(self.fruits_ate) + ' rival_fruits_ate=' + str(self.rival_fruits_ate))
-        print('fruits_dict=' + str(self.fruits_dict))
-        print()
 
         return best_direction
 
@@ -163,7 +157,7 @@ class Player(AbstractPlayer):
             else:
                 return draw
 
-        return heuristics.h_minimax(self, my_pos)
+        return utils.h_minimax(self, my_pos)
 
     def succ(self, pos):
         next_poses = []
