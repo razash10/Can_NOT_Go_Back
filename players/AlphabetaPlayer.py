@@ -2,7 +2,6 @@
 MiniMax Player with AlphaBeta pruning
 """
 from players.AbstractPlayer import AbstractPlayer
-# TODO: you can import more modules, if needed
 from SearchAlgos import AlphaBeta
 import numpy as np
 import time
@@ -14,7 +13,6 @@ class Player(AbstractPlayer):
     def __init__(self, game_time, penalty_score):
         AbstractPlayer.__init__(self, game_time,
                                 penalty_score)  # keep the inheritance of the parent's (AbstractPlayer) __init__()
-        # TODO: initialize more fields, if needed, and the AlphaBeta algorithm from SearchAlgos.py
         self.penalty_score = penalty_score
         self.board = None
         self.pos = None
@@ -34,7 +32,6 @@ class Player(AbstractPlayer):
             - board: np.array, a 2D matrix of the board.
         No output is expected.
         """
-        # TODO: erase the following line and implement this function.
         self.board = board
         pos = np.where(board == 1)
         rival_pos = np.where(board == 2)
@@ -49,7 +46,6 @@ class Player(AbstractPlayer):
         output:
             - direction: tuple, specifing the Player's movement, chosen from self.directions
         """
-        # TODO: erase the following line and implement this function.
         start_time = time.time()
         buffer = 200
         depth = 1
@@ -57,15 +53,11 @@ class Player(AbstractPlayer):
         best_score = float('-inf')
         time_left = (time_limit - (time.time() - start_time)) * 1000
 
-        print()
-        print("Alphabeta turn:")
-
         # At least "buffer" in ms left to run
         while time_left > buffer:
             minimax_algo = AlphaBeta(self.utility, self.succ, self.perform_move, None)
             state = [self.pos, self.rival_pos, start_time, time_limit]
             score, direction = minimax_algo.search(state, depth, True)
-            print('score=' + str(score) + ' direction=' + str(direction) + ' depth=' + str(depth))
             depth += 1
             if best_direction is None or score > best_score:
                 best_score = score
@@ -92,7 +84,6 @@ class Player(AbstractPlayer):
             - pos: tuple, the new position of the rival.
         No output is expected
         """
-        # TODO: erase the following line and implement this function.
         if self.first_turn:
             self.first_turn = False
             if self.board[pos] > 0:
@@ -108,12 +99,10 @@ class Player(AbstractPlayer):
                                     'value' is the value of this fruit.
         No output is expected.
         """
-        # TODO: erase the following line and implement this function. In case you choose not to use this function,
         # use 'pass' instead of the following line.
         self.fruits_dict = fruits_on_board_dict
 
     ########## helper functions in class ##########
-    # TODO: add here helper functions in class, if needed
     def update_fruits_scores(self, player_index):
         if player_index == 1:
             self.fruits_score = 0
@@ -125,7 +114,6 @@ class Player(AbstractPlayer):
                 self.rival_fruits_score += self.rival_fruits_ate[fruit]
 
     ########## helper functions for AlphaBeta algorithm ##########
-    # TODO: add here the utility, succ, and perform_move functions used in AlphaBeta algorithm
     def utility(self, state):
         my_pos = state[0]
         rival_pos = state[1]

@@ -1,7 +1,6 @@
 """Search Algos: MiniMax, AlphaBeta
 """
 from utils import ALPHA_VALUE_INIT, BETA_VALUE_INIT
-# TODO: you can import more modules, if needed
 import operator
 import time
 
@@ -33,7 +32,6 @@ class MiniMax(SearchAlgos):
         :param maximizing_player: Whether this is a max node (True) or a min node (False).
         :return: A tuple: (The min max algorithm value, The direction in case of max node or None in min mode)
         """
-        # TODO: erase the following line and implement this function.
         pos = None
         if maximizing_player:
             pos = state[0]
@@ -83,7 +81,6 @@ class AlphaBeta(SearchAlgos):
         :param: beta: beta value
         :return: A tuple: (The min max algorithm value, The direction in case of max node or None in min mode)
         """
-        # TODO: erase the following line and implement this function.
         pos = None
         if maximizing_player:
             pos = state[0]
